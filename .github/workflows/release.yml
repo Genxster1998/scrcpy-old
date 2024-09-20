@@ -54,6 +54,28 @@ jobs:
         run: |
           meson test -Cd
 
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          echo `arch`
+          [ `arch` = "arm64" ] || exit 2
+          brew install meson ninja android-platform-tools sdl2 libusb pkg-config coreutils
+          pip3 install macpack --break-system-packages
+
+      - name: Build scrcpy macos-arm64
+        run: make -f release.mk build-macos-arm64
+
+      - name: Upload build-macos-arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-macos-arm64-intermediate
+          path: build-macos-arm64/dist/
+
   build-win32:
     runs-on: ubuntu-latest
     steps:
@@ -111,6 +133,7 @@ jobs:
       - build-scrcpy-server
       - build-win32
       - build-win64
+      - build-macos-arm64
     runs-on: ubuntu-latest
     env:
       # $VERSION is used by release.mk
@@ -136,6 +159,12 @@ jobs:
         with:
           name: build-win64-intermediate
           path: build-win64/dist/
+
+      - name: Download build-macos-arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: build-macos-arm64-intermediate
+          path: build-macos-arm64/dist/
 
       - name: Package
         run: make -f release.mk package

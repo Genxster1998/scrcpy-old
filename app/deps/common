@@ -16,10 +16,15 @@ then
 elif [[ "$HOST" = win64 ]]
 then
     HOST_TRIPLET=x86_64-w64-mingw32
+elif [[ "$HOST" = macos-arm64 ]]
+then
+    HOST_TRIPLET=none
 else
     echo "Unsupported host: $HOST" >&2
     exit 1
 fi
+
+FFMPEG_VERSION=7.0.2
 
 DEPS_DIR=$(dirname ${BASH_SOURCE[0]})
 cd "$DEPS_DIR"

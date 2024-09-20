@@ -8,6 +8,8 @@ VERSION=$FFMPEG_VERSION
 FILENAME=ffmpeg-$VERSION.tar.xz
 PROJECT_DIR=ffmpeg-$VERSION
 SHA256SUM=8646515b638a3ad303e23af6a3587734447cb8fc0a0c064ecdb8e95c4fd8b389
+# github actions hack until they ship sequoia
+export PATH=/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH
 
 cd "$SOURCES_DIR"
 
@@ -22,23 +24,6 @@ fi
 mkdir -p "$BUILD_DIR/$PROJECT_DIR"
 cd "$BUILD_DIR/$PROJECT_DIR"
 
-if [[ "$HOST" = win32 ]]
-then
-    ARCH=x86
-elif [[ "$HOST" = win64 ]]
-then
-    ARCH=x86_64
-else
-    echo "Unsupported host: $HOST" >&2
-    exit 1
-fi
-
-# -static-libgcc to avoid missing libgcc_s_dw2-1.dll
-# -static to avoid dynamic dependency to zlib
-export CFLAGS='-static-libgcc -static'
-export CXXFLAGS="$CFLAGS"
-export LDFLAGS='-static-libgcc -static'
-
 if [[ -d "$HOST" ]]
 then
     echo "'$PWD/$HOST' already exists, not reconfigured"
@@ -49,12 +34,7 @@ else
 
     "$SOURCES_DIR/$PROJECT_DIR"/configure \
         --prefix="$INSTALL_DIR/$HOST" \
-        --enable-cross-compile \
-        --target-os=mingw32 \
-        --arch="$ARCH" \
-        --cross-prefix="${HOST_TRIPLET}-" \
-        --cc="${HOST_TRIPLET}-gcc" \
-        --extra-cflags="-O2 -fPIC" \
+        --extra-cflags=-O2 \
         --enable-shared \
         --disable-static \
         --disable-programs \
@@ -66,6 +46,13 @@ else
         --disable-network \
         --disable-everything \
         --enable-swresample \
+        --disable-debug \
+        --disable-fast-unaligned \
+        --disable-runtime-cpudetect  \
+        --disable-xlib \
+        --disable-iconv \
+        --enable-audiotoolbox \
+        --enable-videotoolbox \
         --enable-decoder=h264 \
         --enable-decoder=hevc \
         --enable-decoder=av1 \
