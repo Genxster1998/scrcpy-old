@@ -11,9 +11,9 @@
 .PHONY: default clean \
 	test test-client test-server \
 	build-server \
-	prepare-deps-win32 prepare-deps-win64 prepare-deps-macos-arm64 \
-	build-win32 build-win64 build-macos-arm64 \
-	zip-win32 zip-win64 zip-macos-arm64 \
+	prepare-deps-win32 prepare-deps-win64 prepare-deps-macos-arm64 prepare-deps-macos-x86_64 \
+	build-win32 build-win64 build-macos-arm64 build-macos-x86_64\
+	zip-win32 zip-win64 zip-macos-arm64 zip-macos-x86_64\
 	package release
 
 GRADLE ?= ./gradlew
@@ -23,6 +23,7 @@ SERVER_BUILD_DIR := build-server
 WIN32_BUILD_DIR := build-win32
 WIN64_BUILD_DIR := build-win64
 MACOS_ARM64_BUILD_DIR := build-macos-arm64
+MACOS_X86_64_BUILD_DIR := build-macos-x86_64
 
 VERSION ?= $(shell git describe --tags --exclude='*install-release' --always)
 
@@ -30,9 +31,11 @@ ZIP := zip
 WIN32_TARGET_DIR := scrcpy-win32-$(VERSION)
 WIN64_TARGET_DIR := scrcpy-win64-$(VERSION)
 MACOS_ARM64_TARGET_DIR := scrcpy-macos-arm64-$(VERSION)
+MACOS_X86_64_TARGET_DIR := scrcpy-macos-x86_64-$(VERSION)
 WIN32_TARGET := $(WIN32_TARGET_DIR).zip
 WIN64_TARGET := $(WIN64_TARGET_DIR).zip
 MACOS_ARM64_TARGET := $(MACOS_ARM64_TARGET_DIR).zip
+MACOS_X86_64_TARGET := $(MACOS_X86_64_TARGET_DIR).zip
 
 RELEASE_DIR := release-$(VERSION)
 
@@ -70,6 +73,28 @@ prepare-deps-win64:
 	@app/deps/sdl.sh win64
 	@app/deps/ffmpeg.sh win64
 	@app/deps/libusb.sh win64
+
+prepare-deps-macos-x86_64:
+	@app/deps/ffmpeg-macos.sh macos-x86_64
+
+build-macos-x86_64: prepare-deps-macos-x86_64
+	rm -rf "$(MACOS_X86_64_BUILD_DIR)"
+	mkdir -p "$(MACOS_X86_64_BUILD_DIR)/local"
+	meson setup "$(MACOS_X86_64_BUILD_DIR)" \
+        --pkg-config-path="app/deps/work/install/macos-x86_64/lib/pkgconfig" \
+        -Dc_args="-I$(PWD)/app/deps/work/install/macos-x86_64/include" \
+        -Dc_link_args="-L$(PWD)/app/deps/work/install/macos-x86_64/lib" \
+        --buildtype=release --strip -Db_lto=true \
+        -Dcompile_server=false \
+        -Dportable=true
+	ninja -C "$(MACOS_X86_64_BUILD_DIR)"
+	# Group intermediate outputs into a 'dist' directory
+	mkdir -p "$(MACOS_X86_64_BUILD_DIR)/dist"
+	cp "$(MACOS_X86_64_BUILD_DIR)"/app/scrcpy "$(MACOS_X86_64_BUILD_DIR)/dist/"
+	cp app/data/icon.png "$(MACOS_X86_64_BUILD_DIR)/dist/"
+	lipo `which adb` -extract x86_64 -output "$(MACOS_X86_64_BUILD_DIR)/dist/adb"
+	strip "$(MACOS_X86_64_BUILD_DIR)/dist/adb"
+	macpack -d libs "$(MACOS_X86_64_BUILD_DIR)/dist/scrcpy"
 
 prepare-deps-macos-arm64:
 	@app/deps/ffmpeg-macos.sh macos-arm64
@@ -137,6 +162,16 @@ build-win64: prepare-deps-win64
 	cp app/deps/work/install/win64/bin/*.dll "$(WIN64_BUILD_DIR)/dist/"
 	cp app/deps/work/install/win64/bin/adb.exe "$(WIN64_BUILD_DIR)/dist/"
 
+zip-macos-x86_64:
+	mkdir -p "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)"
+	cp -r "$(MACOS_X86_64_BUILD_DIR)/dist/." "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)/"
+	cp "$(SERVER_BUILD_DIR)"/server/scrcpy-server "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)/"
+	chmod +x "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)/scrcpy"
+	chmod +x "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)/adb"
+	cd "$(ZIP)"; \
+		zip -r "$(MACOS_X86_64_TARGET)" "$(MACOS_X86_64_TARGET_DIR)"
+	rm -rf "$(ZIP)/$(MACOS_X86_64_TARGET_DIR)"
+
 zip-macos-arm64:
 	mkdir -p "$(ZIP)/$(MACOS_ARM64_TARGET_DIR)"
 	cp -r "$(MACOS_ARM64_BUILD_DIR)/dist/." "$(ZIP)/$(MACOS_ARM64_TARGET_DIR)/"
@@ -163,16 +198,18 @@ zip-win64:
 		zip -r "$(WIN64_TARGET)" "$(WIN64_TARGET_DIR)"
 	rm -rf "$(ZIP)/$(WIN64_TARGET_DIR)"
 
-package: zip-win32 zip-win64 zip-macos-arm64
+package: zip-win32 zip-win64 zip-macos-arm64 zip-macos-x86_64
 	mkdir -p "$(RELEASE_DIR)"
 	cp "$(SERVER_BUILD_DIR)/server/scrcpy-server" \
 		"$(RELEASE_DIR)/scrcpy-server-$(VERSION)"
 	cp "$(ZIP)/$(WIN32_TARGET)" "$(RELEASE_DIR)"
 	cp "$(ZIP)/$(WIN64_TARGET)" "$(RELEASE_DIR)"
 	cp "$(ZIP)/$(MACOS_ARM64_TARGET)" "$(RELEASE_DIR)"
+	cp "$(ZIP)/$(MACOS_X86_64_TARGET)" "$(RELEASE_DIR)"
 	cd "$(RELEASE_DIR)" && \
 		sha256sum "scrcpy-server-$(VERSION)" \
 			"scrcpy-win32-$(VERSION).zip" \
 			"scrcpy-win64-$(VERSION).zip" \
-            "scrcpy-macos-arm64-$(VERSION).zip" > SHA256SUMS.txt
+            "scrcpy-macos-arm64-$(VERSION).zip" \
+			"scrcpy-macos-x86_64-$(VERSION).zip" > SHA256SUMS.txt
 	@echo "Release generated in $(RELEASE_DIR)/"

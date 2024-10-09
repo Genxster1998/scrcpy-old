@@ -19,6 +19,9 @@ then
 elif [[ "$HOST" = macos-arm64 ]]
 then
     HOST_TRIPLET=none
+elif [[ "$HOST" = macos-x86_64 ]]
+then
+    HOST_TRIPLET=none
 else
     echo "Unsupported host: $HOST" >&2
     exit 1
