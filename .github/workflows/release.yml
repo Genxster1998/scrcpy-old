@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           echo `arch`
-          [ `arch` = "x86_64" ] || exit 2
+          [ `arch` = "i386" ] || exit 2
           brew install meson ninja android-platform-tools sdl2 libusb pkg-config coreutils
           pip3 install macpack --break-system-packages
 

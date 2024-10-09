@@ -17,6 +17,8 @@ elif [[ "$HOST" = win64 ]]
 then
     HOST_TRIPLET=x86_64-w64-mingw32
 elif [[ "$HOST" = macos-arm64 ]]
+then
+    HOST_TRIPLET=none
 elif [[ "$HOST" = macos-x86_64 ]]
 then
     HOST_TRIPLET=none
