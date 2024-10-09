@@ -64,7 +64,7 @@ jobs:
         run: |
           echo `arch`
           [ `arch` = "i386" ] || exit 2
-          brew install meson ninja android-platform-tools sdl2 libusb pkg-config coreutils
+          brew install meson ninja android-platform-tools sdl2 libusb pkg-config coreutils yasm
           pip3 install macpack --break-system-packages
 
       - name: Build scrcpy macos-x86_64
