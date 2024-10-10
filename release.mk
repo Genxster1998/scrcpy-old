@@ -210,6 +210,6 @@ package: zip-win32 zip-win64 zip-macos-arm64 zip-macos-x86_64
 		sha256sum "scrcpy-server-$(VERSION)" \
 			"scrcpy-win32-$(VERSION).zip" \
 			"scrcpy-win64-$(VERSION).zip" \
-            "scrcpy-macos-arm64-$(VERSION).zip" \
+            		"scrcpy-macos-arm64-$(VERSION).zip" \
 			"scrcpy-macos-x86_64-$(VERSION).zip" > SHA256SUMS.txt
 	@echo "Release generated in $(RELEASE_DIR)/"
